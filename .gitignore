@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # === Node.js / npm / yarn / pnpm ===
+=======
+# === Node.js ===
+>>>>>>> 919e48f (chore: add .gitignore to ignore dependencies, builds, and env files)
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -18,16 +22,24 @@ coverage/
 temp/
 out/
 .next/
+<<<<<<< HEAD
 .nx/
 .turbo/
+=======
+>>>>>>> 919e48f (chore: add .gitignore to ignore dependencies, builds, and env files)
 
 # === Environment files ===
 .env
 .env.local
 .env.*.local
+<<<<<<< HEAD
 .env.development
 .env.production
 .env.test
+=======
+.env.test
+.env.production
+>>>>>>> 919e48f (chore: add .gitignore to ignore dependencies, builds, and env files)
 
 # === Logs ===
 logs/
@@ -35,12 +47,17 @@ logs/
 *.log.*
 debug.log
 
+<<<<<<< HEAD
 # === IDE / OS / Misc ===
+=======
+# === IDE & OS ===
+>>>>>>> 919e48f (chore: add .gitignore to ignore dependencies, builds, and env files)
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 *.swp
+<<<<<<< HEAD
 *.swo
 *.orig
 *.bak
@@ -89,3 +106,24 @@ jest-results.json
 *.key
 *.pem
 *.crt
+=======
+
+# === Docker ===
+*.pid
+docker-compose.override.yml
+
+# === Project specific ===
+backend/node_modules/
+frontend/node_modules/
+nats/node_modules/
+publisher/node_modules/
+
+backend/dist/
+frontend/dist/
+nats/dist/
+publisher/dist/
+
+# === Misc ===
+*.tgz
+*.tar.gz
+>>>>>>> 919e48f (chore: add .gitignore to ignore dependencies, builds, and env files)
