@@ -89,7 +89,7 @@ export default function MessagePage() {
     return () => {
       socket.disconnect();
     };
-  }, 100); // таймаут 0.1 секунды
+  }, 0); 
 
   return () => clearTimeout(timer);
 }, []);

@@ -1,0 +1,6 @@
+{
+  "name": "@my-monorepo/shared",
+  "version": "1.0.0",
+  "main": "src/dto.ts",
+  "types": "src/dto.ts"
+}

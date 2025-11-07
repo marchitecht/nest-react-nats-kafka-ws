@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { RouterProvider, Navigate } from "react-router-dom";
+import { RouterProvider } from "react-router-dom";
 import { router } from "../router/index"; // твой router
 
 function App() {
