@@ -20,6 +20,8 @@ export class HistoryGateway implements OnGatewayConnection, OnGatewayDisconnect 
   ) {}
 
   handleConnection(client: Socket) {
+    // console.log({client});
+    
     try {
       const token = client.handshake.headers.cookie
         ?.split('; ')
@@ -41,10 +43,12 @@ export class HistoryGateway implements OnGatewayConnection, OnGatewayDisconnect 
       const history = this.historyService.getUserHistory(user.email);
       client.emit('history', history);
     } catch (e) {
-      console.log('❌ Invalid token');
+      console.log('❌ Invalid token in history');
       client.disconnect();
     }
   }
+
+  
 
   handleDisconnect(client: Socket) {
     const user = client.data.user;

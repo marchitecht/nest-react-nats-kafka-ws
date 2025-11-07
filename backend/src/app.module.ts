@@ -3,8 +3,8 @@ import { NatsModule } from './nats/nats.module';
 import { HistoryModule } from './history/history.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
-import { SocketGateway } from './auth/socket.gateway';
 import { HistoryService } from './history/history.service';
+import { SocketModule } from './socket/socket.module';
 
 @Module({
 imports: [
@@ -12,6 +12,8 @@ imports: [
     AuthModule,
     HistoryModule,
     NatsModule,
+    SocketModule
+
   ],
 providers: [ HistoryService],
 })

@@ -37,7 +37,7 @@ export class MessagesGateway
       // Проверяем JWT
       const payload: any = jwt.verify(
         jwtCookie,
-        process.env.JWT_SECRET || 'secretKey',
+        process.env.JWT_SECRET || 'qwer',
       );
 
       const email = payload.email;

@@ -26,11 +26,14 @@ async function main() {
 
   // Функция формирования сообщения с email
   const createMessage = (text) => JSON.stringify({
-    email: 'martin.musinn@gmail.com', // конкретный пользователь
+    // email: 'martin.musinn@gmail.com', // конкретный пользователь
+    email: 'fuegohayes@gmail.com', // конкретный пользователь
+
     id: Date.now(),
     ts: new Date().toISOString(),
     body: text,
   })
+
 
   // Отправка одного сообщения
   if (onceMsg) {

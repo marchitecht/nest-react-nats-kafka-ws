@@ -1,16 +1,15 @@
-// socket.gateway.ts
 import {
   WebSocketGateway,
   WebSocketServer,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
   SubscribeMessage,
   MessageBody,
   ConnectedSocket,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
-import { HistoryService } from 'src/history/history.service';
+import { HistoryService } from '../history/history.service';
 import { Message } from 'src/dto/state.dto';
 
 @WebSocketGateway({
@@ -24,16 +23,16 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   constructor(
-    private jwtService: JwtService,
-    private historyService: HistoryService,
-  ) {
-    // Передаём server в HistoryService
-    this.historyService.setSocketServer(this.server);
-  }
+    private readonly jwtService: JwtService,
+    private readonly historyService: HistoryService,
+  ) {}
 
+  // 🔹 подключение пользователя
   async handleConnection(client: Socket) {
+    console.log('⚡ handleConnection triggered');
+
     const token = this.extractTokenFromCookie(client);
-    
+
     if (!token) {
       console.log('❌ No token, disconnecting');
       client.disconnect();
@@ -44,40 +43,33 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const payload = this.jwtService.verify(token);
       const email = payload.email;
 
-      // Регистрируем пользователя
-      this.historyService.registerUser(email, client);
+      // Сохраняем пользователя в данных сокета
       client.data.user = payload;
+
+      // Регистрируем в HistoryService
+      this.historyService.registerUser(email, client);
 
       console.log(`✅ Connected: ${email} (${client.id})`);
 
-      // Отправляем историю при подключении
+      // Отправляем историю сообщений при подключении
       const history = this.historyService.getUserHistory(email);
       client.emit('history', history);
-
     } catch (err) {
-      console.log('❌ Invalid token');
+      console.log('❌ Invalid token in socket:', err.message);
       client.disconnect();
     }
   }
 
+  // 🔹 отключение пользователя
   handleDisconnect(client: Socket) {
     const email = client.data.user?.email;
     if (email) {
       this.historyService.unregisterUser(email);
-      console.log(`Disconnected: ${email}`);
+      console.log(`⚡ Disconnected: ${email}`);
     }
   }
 
-  // Вспомогательная функция
-  private extractTokenFromCookie(client: Socket): string | null {
-    const cookieHeader = client.handshake.headers.cookie;
-    if (!cookieHeader) return null;
-
-    const match = cookieHeader.match(/jwt=([^;]+)/);
-    return match ? match[1] : null;
-  }
-
-  // Для отправки live-сообщения
+  // 🔹 отправка live-сообщений
   @SubscribeMessage('sendMessage')
   handleMessage(@MessageBody() msg: any, @ConnectedSocket() client: Socket) {
     const email = client.data.user?.email;
@@ -90,5 +82,14 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     };
 
     this.historyService.addLive(email, message);
+  }
+
+  // вспомогательная функция для извлечения JWT
+  private extractTokenFromCookie(client: Socket): string | null {
+    const cookieHeader = client.handshake.headers.cookie;
+    if (!cookieHeader) return null;
+
+    const match = cookieHeader.match(/jwt=([^;]+)/);
+    return match ? match[1] : null;
   }
 }

@@ -9,7 +9,7 @@ import { AuthService } from './auth.service';
   imports: [
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'supersecretjwt',
+      secret: process.env.JWT_SECRET || 'qwer',
       signOptions: { expiresIn: '1d' },
     }),
   ],
