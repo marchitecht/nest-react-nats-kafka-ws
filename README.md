@@ -25,6 +25,11 @@ npm run start:backend
 or
 
 ```bash
+
+# Запуск NATS (обязательно. иначе не увидим сообщений)
+лушче открыть отдельный терминал
+docker run -p 4222:4222 -p 8222:8222 nats
+
 # Запуск publisher
 cd publisher
 node publisher.js --stream 2000 --subject updates.live
