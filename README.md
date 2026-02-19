@@ -7,22 +7,6 @@ Live Messaging App — это веб-приложение для передач�
 ## 📌 Старт проекта
 
 ### Запуск сервисов
-```bash
-# Запуск publisher
-cd publisher
-node publisher.js --stream 2000 --subject updates.live
-
-# Запуск backend frontend
-cd root
-npm i
-npm run start:all
-
-or
-npm run start:frontend
-npm run start:backend
-```
-
-or
 
 ```bash
 
