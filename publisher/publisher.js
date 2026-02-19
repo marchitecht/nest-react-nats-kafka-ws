@@ -1,41 +1,40 @@
 #!/usr/bin/env node
-import { connect, StringCodec } from 'nats.ws';
+import { connect, StringCodec } from "nats";
 
 const sc = StringCodec();
 
 // Обработка аргументов
 const args = process.argv.slice(2);
+const subjectIndex = args.indexOf("--subject");
+const subject =
+  subjectIndex !== -1 && args[subjectIndex + 1]
+    ? args[subjectIndex + 1]
+    : "updates.live";
+const onceIndex = args.indexOf("--once");
+const onceMsg =
+  onceIndex !== -1 && args[onceIndex + 1] ? args[onceIndex + 1] : null;
+const streamIndex = args.indexOf("--stream");
+const streamInterval =
+  streamIndex !== -1 && args[streamIndex + 1]
+    ? Number(args[streamIndex + 1])
+    : null;
+const stdin = args.includes("--stdin");
 
-const subjectIndex = args.indexOf('--subject');
-const subject = subjectIndex !== -1 && args[subjectIndex + 1] ? args[subjectIndex + 1] : 'updates.live';
-
-const onceIndex = args.indexOf('--once');
-const onceMsg = onceIndex !== -1 && args[onceIndex + 1] ? args[onceIndex + 1] : null;
-
-const streamIndex = args.indexOf('--stream');
-const streamInterval = streamIndex !== -1 && args[streamIndex + 1] ? Number(args[streamIndex + 1]) : null;
-
-const stdin = args.includes('--stdin');
-
-// Подключаемся к WebSocket NATS
-const server = 'ws://localhost:9222';
+const server = "nats://localhost:4222"; // TCP клиент
 
 async function main() {
   const nc = await connect({ servers: server });
-  console.log(`✅ Connected to NATS WS at ${server}`);
+  console.log(`✅ Connected to NATS TCP at ${server}`);
 
-  // Функция формирования сообщения с email
-  const createMessage = (text) => JSON.stringify({
-    // email: 'martin.musinn@gmail.com', // конкретный пользователь
-    email: 'fuegohayes@gmail.com', // конкретный пользователь
+  const createMessage = (text) =>
+    JSON.stringify({
+      email: "fuegohayes@gmail.com",
+      id: Date.now(),
+      ts: new Date().toISOString(),
+      body: text,
+    });
 
-    id: Date.now(),
-    ts: new Date().toISOString(),
-    body: text,
-  })
-
-
-  // Отправка одного сообщения
+  // Одно сообщение
   if (onceMsg) {
     nc.publish(subject, sc.encode(createMessage(onceMsg)));
     console.log(`Published once to ${subject}:`, onceMsg);
@@ -44,35 +43,21 @@ async function main() {
     return;
   }
 
-  // Отправка через stdin
-  if (stdin) {
-    process.stdin.setEncoding('utf8');
-    let input = '';
-    process.stdin.on('data', chunk => { input += chunk; });
-    process.stdin.on('end', async () => {
-      const msg = input.trim();
-      if (msg) nc.publish(subject, sc.encode(createMessage(msg)));
-      console.log(`Published from stdin to ${subject}:`, msg);
-      await nc.flush();
-      await nc.close();
-    });
-    return;
-  }
-
   // Потоковая отправка
   if (streamInterval) {
     let counter = 1;
-    console.log(`Publishing every ${streamInterval}ms to ${subject}. CTRL+C to stop.`);
+    console.log(
+      `Publishing every ${streamInterval}ms to ${subject}. CTRL+C to stop.`,
+    );
     const timer = setInterval(() => {
       const text = `msg-${counter++}-${Math.random().toString(36).slice(2, 6)}`;
-      const body = createMessage(text);
-      nc.publish(subject, sc.encode(body));
-      console.log('Published', body);
+      nc.publish(subject, sc.encode(createMessage(text)));
+      console.log("Published", text);
     }, streamInterval);
 
-    process.on('SIGINT', async () => {
+    process.on("SIGINT", async () => {
       clearInterval(timer);
-      console.log('\nShutting down...');
+      console.log("\nShutting down...");
       await nc.flush();
       await nc.close();
       process.exit(0);
@@ -80,7 +65,7 @@ async function main() {
     return;
   }
 
-  console.log('Nothing to do — use --once, --stdin or --stream');
+  console.log("Nothing to do — use --once, --stdin or --stream");
 }
 
-main().catch(err => console.error(err));
+main().catch((err) => console.error(err));

@@ -1,49 +1,44 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { Server, Socket } from 'socket.io';
-import type { Message } from 'src/dto/state.dto';
+import { Socket } from 'socket.io';
+import { Message } from 'src/dto/state.dto';
 
 @Injectable()
 export class HistoryService {
   private readonly logger = new Logger(HistoryService.name);
-  private socketServer: Server | null = null;
 
   // email → socket
-  private userSockets = new Map<string, Socket>();
+  private sockets = new Map<string, Socket>();
 
   // email → массив сообщений
-  private userMessages = new Map<string, Message[]>();
+  private messages = new Map<string, Message[]>();
 
-  setSocketServer(server: Server) {
-    this.socketServer = server;
-  }
-
-  /** Регистрируем сокет пользователя */
+  /** Регистрируем пользователя */
   registerUser(email: string, socket: Socket) {
-    this.userSockets.set(email, socket);
+    this.sockets.set(email, socket);
     this.logger.log(`🔗 User connected: ${email}`);
 
-    // Отправляем сразу накопленные сообщения
-    const messages = this.getUserHistory(email);
-    if (messages.length > 0) {
-      socket.emit('history', messages);
+    // сразу отправляем историю
+    const history = this.getUserHistory(email);
+    if (history.length) {
+      socket.emit('history', history);
     }
   }
 
-  /** Удаляем сокет при дисконнекте */
+  /** Удаляем пользователя при дисконнекте */
   unregisterUser(email: string) {
-    this.userSockets.delete(email);
+    this.sockets.delete(email);
     this.logger.log(`❌ User disconnected: ${email}`);
   }
 
   /** Добавляем live-сообщение конкретному пользователю */
   addLive(email: string, msg: Message) {
-    const messages = this.userMessages.get(email) ?? [];
-    messages.unshift(msg);
-    this.userMessages.set(email, messages);
+    const arr = this.messages.get(email) ?? [];
+    arr.unshift(msg);
+    this.messages.set(email, arr);
 
     this.logger.log(`📩 New live message for ${email}: ${JSON.stringify(msg)}`);
 
-    const socket = this.userSockets.get(email);
+    const socket = this.sockets.get(email);
     if (socket && socket.connected) {
       socket.emit('live', msg);
     }
@@ -51,14 +46,14 @@ export class HistoryService {
 
   /** Получить всю историю пользователя */
   getUserHistory(email: string): Message[] {
-    return this.userMessages.get(email) ?? [];
+    return this.messages.get(email) ?? [];
   }
 
-  /** Получить все сообщения всех пользователей (например, для админа) */
-  getAll(): { [email: string]: Message[] } {
+  /** Получить все сообщения всех пользователей */
+  getAll(): Record<string, Message[]> {
     const result: Record<string, Message[]> = {};
-    for (const [email, messages] of this.userMessages.entries()) {
-      result[email] = messages;
+    for (const [email, msgs] of this.messages.entries()) {
+      result[email] = msgs;
     }
     return result;
   }

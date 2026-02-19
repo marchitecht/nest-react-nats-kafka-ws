@@ -1,9 +1,8 @@
-// src/nats/nats.service.ts
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { connect, StringCodec, NatsConnection } from 'nats.ws';
+import { connect, StringCodec, NatsConnection } from 'nats';
 import { HistoryService } from '../history/history.service';
 import { v4 as uuidv4 } from 'uuid';
-import type { Message, StateDTO } from 'src/dto/state.dto';
+import type { Message } from 'src/dto/state.dto';
 
 @Injectable()
 export class NatsService implements OnModuleInit {
@@ -14,38 +13,46 @@ export class NatsService implements OnModuleInit {
   constructor(private readonly historyService: HistoryService) {}
 
   async onModuleInit() {
-    this.nc = await connect({ servers: 'ws://localhost:9222' });
-    this.logger.log('✅ Connected to NATS WS');
+    try {
+      this.nc = await connect({ servers: 'localhost:4222' });
+      this.logger.log('✅ Connected to NATS TCP');
 
-    const sub = this.nc.subscribe('updates.live');
-    (async () => {
-      for await (const m of sub) {
-        let data: any;
-        try {
-          data = JSON.parse(this.sc.decode(m.data));
-        } catch {
-          data = this.sc.decode(m.data);
+      const sub = this.nc.subscribe('updates.live');
+      (async () => {
+        for await (const m of sub) {
+          let data: any;
+          try {
+            data = JSON.parse(this.sc.decode(m.data));
+          } catch {
+            data = this.sc.decode(m.data);
+          }
+
+          if (!data.email) {
+            this.logger.warn('⚠️ Received message without email, skipping');
+            continue;
+          }
+
+          const msg: Message = {
+            id: uuidv4(),
+            ts: new Date().toISOString(),
+            body: data,
+          };
+
+          // Отправляем live-сообщение пользователю
+          this.historyService.addLive(data.email, msg);
         }
-
-        if (!data.email) {
-          this.logger.warn('⚠️ Received message without email, skipping');
-          continue;
-        }
-
-        const msg: Message = {
-          id: uuidv4(),
-          ts: new Date().toISOString(),
-          body: data,
-        };
-
-        // Отправляем только конкретному пользователю
-        this.historyService.addLive(data.email, msg);
-      }
-    })();
+      })();
+    } catch (err) {
+      this.logger.error('❌ NATS connection failed', err);
+    }
   }
+
+  async publish(subject: string, payload: any) {
+    if (!this.nc) return;
+    this.nc.publish(subject, this.sc.encode(JSON.stringify(payload)));
+  }
+
   getState() {
-    // Можно вернуть сводку по всем пользователям (например, для админа)
-    const all = this.historyService.getAll();
-    return all;
+    return this.historyService.getAll();
   }
 }

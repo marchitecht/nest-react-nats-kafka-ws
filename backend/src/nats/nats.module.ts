@@ -1,11 +1,11 @@
-// src/nats/nats.module.ts
 import { Module } from '@nestjs/common';
 import { NatsService } from './nats.service';
+import { NatsController } from './nats.controller';
 import { HistoryModule } from '../history/history.module';
 
 @Module({
   imports: [HistoryModule],
   providers: [NatsService],
-  exports: [NatsService],
+  controllers: [NatsController],
 })
 export class NatsModule {}

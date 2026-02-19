@@ -1,21 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import cookieParser from 'cookie-parser';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Подключаем cookie parser
-  app.use(cookieParser());
-
-  // Настройка CORS
+  // Разрешаем фронтенду подключаться
   app.enableCors({
-    origin: 'http://localhost:5173', // адрес твоего фронта
-    credentials: true,               // разрешаем cookie
+    origin: 'http://localhost:5173',
+    credentials: true,
   });
 
-  // Socket.IO
-  const server = await app.listen(3000);
-  return server;
+  await app.listen(3001);
+  console.log('🚀 Server started on http://localhost:3001');
 }
 bootstrap();

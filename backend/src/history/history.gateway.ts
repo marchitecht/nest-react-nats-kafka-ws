@@ -1,63 +1,58 @@
-// src/history/history.gateway.ts
 import {
   WebSocketGateway,
   WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { JwtService } from '@nestjs/jwt';
 import { HistoryService } from './history.service';
+import { Message } from 'src/dto/state.dto';
 
-@WebSocketGateway({ cors: { origin: '*' } })
-export class HistoryGateway implements OnGatewayConnection, OnGatewayDisconnect {
+@WebSocketGateway(3000, {
+  cors: { origin: 'http://localhost:5173', credentials: true },
+})
+export class HistoryGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
-  constructor(
-    private readonly historyService: HistoryService,
-    private readonly jwtService: JwtService
-  ) {}
+  constructor(private readonly historyService: HistoryService) {}
 
+  // Подключение клиента
   handleConnection(client: Socket) {
-    // console.log({client});
-    
-    try {
-      const token = client.handshake.headers.cookie
-        ?.split('; ')
-        .find(c => c.startsWith('jwt='))
-        ?.split('=')[1];
-             
-      if (!token) {
-        client.disconnect();
-        return;
-      }
-      const user = this.jwtService.verify(token);
-      client.data.user = user;
-
-      // Регистрируем сокет пользователя
-      this.historyService.registerUser(user.email, client);
-      console.log('✅ WS connected:', user.email);
-
-      // Отправляем историю
-      const history = this.historyService.getUserHistory(user.email);
-      client.emit('history', history);
-    } catch (e) {
-      console.log('❌ Invalid token in history');
+    const email = client.handshake.query.email as string;
+    if (!email) {
       client.disconnect();
+      return;
     }
+
+    console.log(`⚡ Client connected: ${email}`);
+    this.historyService.registerUser(email, client);
   }
 
-  
-
+  // Отключение клиента
   handleDisconnect(client: Socket) {
-    const user = client.data.user;
-    if (user?.email) {
-      this.historyService.unregisterUser(user.email);
-    }
+    const email = client.handshake.query.email as string;
+    if (email) this.historyService.unregisterUser(email);
+    console.log(`⚡ Client disconnected: ${email}`);
   }
 
-  afterInit() {
-    this.historyService.setSocketServer(this.server);
+  // Получение сообщений с фронта
+  @SubscribeMessage('sendMessage')
+  handleMessage(@MessageBody() msg: any, @ConnectedSocket() client: Socket) {
+    const email = client.handshake.query.email as string;
+    if (!email) return;
+
+    const message: Message = {
+      id: Date.now().toString(),
+      ts: new Date().toISOString(),
+      body: msg.body,
+    };
+
+    this.historyService.addLive(email, message);
   }
 }
